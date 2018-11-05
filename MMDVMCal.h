@@ -1,5 +1,7 @@
 /*
  *   Copyright (C) 2015,2016,2017 by Jonathan Naylor G4KLX
+ *   Copyright (C) 2017,2018 by Andy Uribe CA6JAU
+ *   Copyright (C) 2018 by Bryan Biedenkapp N2PLL
  *
  *   This program is free software; you can redistribute it and/or modify
  *   it under the terms of the GNU General Public License as published by
@@ -21,6 +23,7 @@
 
 #include "SerialController.h"
 #include "Console.h"
+#include "BERCal.h"
 
 #include <cstring>
 #include <cstdlib>
@@ -37,6 +40,10 @@ enum HW_TYPE {
 };
 
 enum MMDVM_STATE {
+  STATE_IDLE      = 0,
+  STATE_DMR       = 2,
+  STATE_P25       = 4,
+  STATE_NXDN      = 5,
   STATE_NXDNCAL1K = 91,
   STATE_DMRDMO1K  = 92,
   STATE_P25CAL1K  = 93,
@@ -44,7 +51,8 @@ enum MMDVM_STATE {
   STATE_LFCAL     = 95,
   STATE_RSSICAL   = 96,
   STATE_DMRCAL    = 98,
-  STATE_DSTARCAL  = 99
+  STATE_DSTARCAL  = 99,
+  STATE_INTCAL    = 100
 };
 
 class CMMDVMCal {
@@ -57,6 +65,7 @@ public:
 private:
 	CSerialController m_serial;
 	CConsole          m_console;
+	CBERCal           m_ber;
 	bool              m_transmit;
 	bool              m_carrier;
 	float             m_txLevel;
@@ -70,10 +79,16 @@ private:
 	unsigned int      m_startfrequency;
 	float             m_power;
 	MMDVM_STATE       m_mode;
+	bool              m_duplex;
+	bool              m_debug;
 	unsigned char*    m_buffer;
 	unsigned int      m_length;
 	unsigned int      m_offset;
 	HW_TYPE           m_hwType;
+	bool              m_dmrEnabled;
+	bool              m_dmrBERFEC;
+	bool              m_p25Enabled;
+	bool              m_nxdnEnabled;
 
 	void displayHelp_MMDVM();
 	void displayHelp_MMDVM_HS();
@@ -87,6 +102,7 @@ private:
 	bool setTXInvert();
 	bool setRXInvert();
 	bool setPTTInvert();
+	bool setDebug();
 	bool setFreq(int incr);
 	bool setPower(int incr);
 	bool setCarrier();
@@ -97,12 +113,17 @@ private:
 	bool setDMRDMO1K();
 	bool setP25Cal1K();
 	bool setNXDNCal1K();
+	bool setDMRBER_FEC();
+	bool setDMRBER_1K();
+	bool setNXDNBER_FEC();
+	bool setP25BER_FEC();
 	bool setDSTAR();
 	bool setRSSI();
+	bool setIntCal();
 
 	bool initModem();
 	void displayModem(const unsigned char* buffer, unsigned int length);
-	bool writeConfig(float txlevel);
+	bool writeConfig(float txlevel, bool debug);
 	void sleep(unsigned int ms);
 	bool setFrequency();
 	RESP_TYPE_MMDVM getResponse();
